@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İdare Yoklama Takip Paneli</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; margin: 0; padding: 30px; }
+        h1 { color: #1e293b; text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 6px solid #10b981; }
+        .card.bekliyor { border-left-color: #f59e0b; }
+        .card h2 { margin: 0 0 10px 0; color: #334155; font-size: 20px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #d1fae5; color: #047857; }
+        .card.bekliyor .badge { background: #fef3c7; color: #b45309; }
+        .info { margin-top: 15px; font-size: 14px; color: #64748b; line-height: 1.6; }
+        .empty { text-align: center; color: #64748b; background: white; border-radius: 12px; padding: 40px; max-width: 600px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <h1>🏫 Okul Canlı Yoklama Paneli</h1>
+    <p class="subtitle">{{ bugun.strftime('%d.%m.%Y') }} tarihli yoklama durumu</p>
+
+    {% if sinif_durumlari %}
+    <div class="grid">
+        {% for sinif in sinif_durumlari %}
+        <div class="card {% if sinif.durum == 'bekliyor' %}bekliyor{% endif %}">
+            <h2>{{ sinif.kod }} Sınıfı</h2>
+            {% if sinif.durum == 'tamamlandi' %}
+            <span class="badge">Yoklama Tamamlandı</span>
+            <div class="info">
+                Toplam Öğrenci: <b>{{ sinif.toplam }}</b><br>
+                Gelmeyen Öğrenci: <b>{{ sinif.gelmeyen }}</b><br>
+                Son Kayıt: <b>{{ sinif.son_tarih.strftime('%H:%M') }}</b>
+            </div>
+            {% else %}
+            <span class="badge">Yoklama Bekleniyor</span>
+            <div class="info">
+                Toplam Öğrenci: <b>{{ sinif.toplam }}</b><br>
+                Gelmeyen Öğrenci: <b>--</b>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+        Henüz kayıtlı sınıf yok.<br>
+        Öğretmen QR kodu okuttuğunda sınıflar burada görünecek.
+    </div>
+    {% endif %}
+</body>
+</html>

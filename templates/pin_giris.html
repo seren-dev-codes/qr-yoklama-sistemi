@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ sinif_kodu }} - Öğretmen Girişi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a5f, #2980b9);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        h1 { color: #1e293b; font-size: 22px; margin: 0 0 8px 0; }
+        p { color: #64748b; font-size: 14px; margin: 0 0 24px 0; }
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 14px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        input:focus { outline: none; border-color: #2980b9; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background: #3498db; }
+        .hata {
+            background: #fef2f2;
+            color: #b91c1c;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>{{ sinif_kodu }} Sınıfı</h1>
+        <p>Yoklama ekranına erişmek için öğretmen PIN kodunu girin.</p>
+
+        {% if hata %}
+        <div class="hata">{{ hata }}</div>
+        {% endif %}
+
+        <form method="post" action="/sinif/{{ sinif_kodu }}/giris">
+            <input
+                type="password"
+                name="pin"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="6"
+                placeholder="PIN"
+                autocomplete="off"
+                required
+                autofocus
+            >
+            <button type="submit">Giriş Yap</button>
+        </form>
+    </div>
+</body>
+</html>

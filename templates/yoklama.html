@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ sinif_kodu }} Sınıfı Yoklama Ekranı</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; text-align: center; }
+        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
+        p.subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 3px solid #2ecc71; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+        .card.yok { background-color: #ffebee; border-color: #e74c3c; }
+        .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+        .card .no { font-weight: bold; color: #34495e; font-size: 14px; }
+        .card .name { font-size: 13px; color: #555; margin-top: 4px; }
+        .card .status { display: inline-block; margin-top: 8px; font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e8f8f5; color: #27ae60; font-weight: bold; }
+        .card.yok .status { background: #fadbd8; color: #c0392b; }
+        .btn-kaydet { margin-top: 30px; background: #2980b9; color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; max-width: 600px; box-shadow: 0 4px 10px rgba(41,128,185,0.3); }
+        .btn-kaydet:hover { background: #3498db; }
+        .btn-kaydet:disabled { background: #95a5a6; cursor: not-allowed; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .modal-overlay.acik { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px 24px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: modalGiris 0.25s ease;
+        }
+        @keyframes modalGiris {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-icon {
+            width: 64px;
+            height: 64px;
+            background: #d1fae5;
+            color: #047857;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 16px;
+        }
+        .modal h2 { margin: 0 0 8px; color: #1e293b; font-size: 22px; }
+        .modal p { margin: 0 0 8px; color: #64748b; font-size: 15px; line-height: 1.5; }
+        .modal .sms-bilgi {
+            background: #f0f9ff;
+            color: #0369a1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin: 16px 0 24px;
+            font-weight: 600;
+        }
+        .modal-btn {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-btn:hover { background: #059669; }
+    </style>
+</head>
+<body>
+    <h1>{{ sinif_kodu }} Sınıfı Yoklaması</h1>
+    <p class="subtitle">Gelmeyen öğrencilerin üzerine tıklayarak "YOK" yapın. Yok olan öğrencilerin velisine SMS gönderilir.</p>
+
+    <div class="grid">
+        {% for ogrenci in ogrenciler %}
+        <div class="card" data-id="{{ ogrenci.id }}" onclick="durumDegistir(this, '{{ ogrenci.id }}')">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed={{ ogrenci.okul_no }}" alt="Öğrenci">
+            <div class="no">No: {{ ogrenci.okul_no }}</div>
+            <div class="name">{{ ogrenci.ad_soyad }}</div>
+            <div class="status">VAR</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button class="btn-kaydet" onclick="yoklamaKaydet()">Yoklamayı Tamamla ve Gönder</button>
+
+    <div class="modal-overlay" id="basariModal">
+        <div class="modal">
+            <div class="modal-icon">✓</div>
+            <h2>Yoklama Tamamlandı!</h2>
+            <p id="modalMesaj">Yoklama başarıyla kaydedildi.</p>
+            <div class="sms-bilgi" id="modalSms"></div>
+            <button class="modal-btn" onclick="modalKapat()">Tamam</button>
+        </div>
+    </div>
+
+    <script>
+        const ogrenciDurumlari = {};
+        const sinifKodu = "{{ sinif_kodu }}";
+
+        document.querySelectorAll('.card').forEach(card => {
+            const id = card.getAttribute('data-id');
+            ogrenciDurumlari[id] = true;
+        });
+
+        function durumDegistir(card, id) {
+            card.classList.toggle('yok');
+            const statusTag = card.querySelector('.status');
+
+            if (card.classList.contains('yok')) {
+                statusTag.innerText = "YOK";
+                ogrenciDurumlari[id] = false;
+            } else {
+                statusTag.innerText = "VAR";
+                ogrenciDurumlari[id] = true;
+            }
+        }
+
+        function modalAc(smsSayisi, gelmeyenSayisi) {
+            document.getElementById('modalMesaj').innerText =
+                `${sinifKodu} sınıfı yoklaması başarıyla kaydedildi.`;
+            document.getElementById('modalSms').innerText =
+                `${gelmeyenSayisi} öğrenci yok olarak işaretlendi. ${smsSayisi} veliye SMS gönderildi.`;
+            document.getElementById('basariModal').classList.add('acik');
+        }
+
+        function modalKapat() {
+            document.getElementById('basariModal').classList.remove('acik');
+        }
+
+        async function yoklamaKaydet() {
+            const btn = document.querySelector('.btn-kaydet');
+            btn.disabled = true;
+            btn.innerText = "Gönderiliyor ve SMS Gönderiliyor...";
+
+            const veri = Object.keys(ogrenciDurumlari).map(id => ({
+                ogrenci_id: parseInt(id),
+                durum: ogrenciDurumlari[id]
+            }));
+
+            try {
+                const response = await fetch(`/api/yoklama-kaydet?sinif_kodu=${encodeURIComponent(sinifKodu)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(veri),
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    modalAc(result.sms_sayisi ?? 0, result.gelmeyen_sayisi ?? 0);
+                } else if (response.status === 401) {
+                    alert("🔒 Oturum süresi doldu. Lütfen sayfayı yenileyip PIN ile tekrar giriş yapın.");
+                    window.location.href = `/sinif/${sinifKodu}`;
+                } else {
+                    const hata = typeof result.detail === "string" ? result.detail : "Yoklama kaydedilemedi.";
+                    alert("❌ Hata: " + hata);
+                }
+            } catch (error) {
+                console.error("İstek hatası:", error);
+                alert("⚠️ Sunucuya bağlanırken bir hata oluştu!");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Yoklamayı Tamamla ve Gönder";
+            }
+        }
+    </script>
+</body>
+</html>
