@@ -16,11 +16,101 @@
         .card.bekliyor .badge { background: #fef3c7; color: #b45309; }
         .info { margin-top: 15px; font-size: 14px; color: #64748b; line-height: 1.6; }
         .empty { text-align: center; color: #64748b; background: white; border-radius: 12px; padding: 40px; max-width: 600px; margin: 0 auto; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .modal-overlay.acik { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px 24px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: modalGiris 0.25s ease;
+        }
+        @keyframes modalGiris {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-icon {
+            width: 64px;
+            height: 64px;
+            background: #fecaca;
+            color: #dc2626;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 16px;
+        }
+        .modal h2 { margin: 0 0 8px; color: #1e293b; font-size: 22px; }
+        .modal p { margin: 0 0 8px; color: #64748b; font-size: 15px; line-height: 1.5; }
+        .modal-btn {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .modal-btn:hover { background: #059669; }
+        .modal-btn.iptal { background: #6b7280; }
+        .modal-btn.iptal:hover { background: #4b5563; }
     </style>
 </head>
 <body>
     <h1>🏫 Okul Canlı Yoklama Paneli</h1>
     <p class="subtitle">{{ bugun.strftime('%d.%m.%Y') }} tarihli yoklama durumu</p>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+            <a href="/" style="text-decoration: none;">
+                <button style="background: {% if not selected_grade %}#10b981{% else %}#e5e7eb{% endif %}; color: {% if not selected_grade %}white{% else %}#374151{% endif %}; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                    Tümü
+                </button>
+            </a>
+            <a href="/?grade=9" style="text-decoration: none;">
+                <button style="background: {% if selected_grade == '9' %}#10b981{% else %}#e5e7eb{% endif %}; color: {% if selected_grade == '9' %}white{% else %}#374151{% endif %}; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                    9. Sınıf
+                </button>
+            </a>
+            <a href="/?grade=10" style="text-decoration: none;">
+                <button style="background: {% if selected_grade == '10' %}#10b981{% else %}#e5e7eb{% endif %}; color: {% if selected_grade == '10' %}white{% else %}#374151{% endif %}; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                    10. Sınıf
+                </button>
+            </a>
+            <a href="/?grade=11" style="text-decoration: none;">
+                <button style="background: {% if selected_grade == '11' %}#10b981{% else %}#e5e7eb{% endif %}; color: {% if selected_grade == '11' %}white{% else %}#374151{% endif %}; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                    11. Sınıf
+                </button>
+            </a>
+            <a href="/?grade=12" style="text-decoration: none;">
+                <button style="background: {% if selected_grade == '12' %}#10b981{% else %}#e5e7eb{% endif %}; color: {% if selected_grade == '12' %}white{% else %}#374151{% endif %}; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                    12. Sınıf
+                </button>
+            </a>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button onclick="yoklamalariSifirlaModalAc()" style="background: #6366f1; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">🔄 Yenile</button>
+            <a href="/admin-logout" style="text-decoration: none;">
+                <button style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">🚪 Çıkış</button>
+            </a>
+        </div>
+    </div>
 
     {% if sinif_durumlari %}
     <div class="grid">
@@ -50,5 +140,44 @@
         Öğretmen QR kodu okuttuğunda sınıflar burada görünecek.
     </div>
     {% endif %}
+
+    <!-- Sıfırlama Onay Modal -->
+    <div class="modal-overlay" id="sifirlaModal">
+        <div class="modal">
+            <div class="modal-icon">⚠️</div>
+            <h2>Tüm Yoklamaları Sıfırla</h2>
+            <p>TÜM sınıfların yoklama verileri silinecek ve baştan başlanacak. Bunu yapmak istediğinizden <b>emin misiniz?</b></p>
+            <button class="modal-btn iptal" onclick="sifirlaModalKapat()">İptal</button>
+            <button class="modal-btn" onclick="yoklamalariSifirla()" style="background: #dc2626;">Evet, Sıfırla</button>
+        </div>
+    </div>
+
+    <script>
+        function yoklamalariSifirlaModalAc() {
+            document.getElementById("sifirlaModal").classList.add("acik");
+        }
+
+        function sifirlaModalKapat() {
+            document.getElementById("sifirlaModal").classList.remove("acik");
+        }
+
+        async function yoklamalariSifirla() {
+            try {
+                const response = await fetch("/api/tum-yoklamalari-sifirla", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                if (!response.ok) throw new Error("API hatası");
+
+                const data = await response.json();
+                sifirlaModalKapat();
+                alert(data.message);
+                location.reload();
+            } catch (error) {
+                alert("Hata: " + error.message);
+            }
+        }
+    </script>
 </body>
 </html>

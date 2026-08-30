@@ -1,7 +1,6 @@
 import os
 import sys
 from datetime import date, datetime, timezone
-from typing import List
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -15,8 +14,10 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from database import engine, Base, SessionLocal, ensure_schema
 from models import Sinif, Ogrenci, Yoklama
-from schemas import YoklamaGuncelle
+from schemas import YoklamaGuncelle, YoklamaKaydetIstek
 from utils import veli_sms_gonder_simule, pin_dogrula, sinif_pin_anahtari
+
+ADMIN_PIN = os.getenv("ADMIN_PIN", "9999")
 
 Base.metadata.create_all(bind=engine)
 ensure_schema()
@@ -51,9 +52,23 @@ def sinif_pin_dogrulandi(request: Request, sinif_kodu: str) -> bool:
     return request.session.get(sinif_pin_anahtari(sinif_kodu), False) is True
 
 
-def sinif_durumlari_olustur(db: Session) -> list[dict]:
+def admin_pin_dogrulandi(request: Request) -> bool:
+    return request.session.get("admin_auth", False) is True
+
+
+def admin_pin_dogrula(pin: str) -> bool:
+    return pin == ADMIN_PIN
+
+
+def sinif_durumlari_olustur(db: Session, grade_filter: str = None) -> list[dict]:
+    """Sınıf durumlarını getir, opsiyonel olarak sınıf seviyesine göre filtrele."""
     bugun = date.today()
     siniflar = db.query(Sinif).order_by(Sinif.kod).all()
+    
+    # Grade filter: "9", "10", "11", "12"
+    if grade_filter:
+        siniflar = [s for s in siniflar if s.kod.startswith(grade_filter)]
+    
     sonuclar = []
 
     for sinif in siniflar:
@@ -120,6 +135,10 @@ def veli_tel_al(ogrenci: Ogrenci) -> str:
     if ogrenci.veli_tel:
         return ogrenci.veli_tel
     return f"+9055510{ogrenci.id:04d}"
+
+
+def sinif_getir_veya_olustur(db: Session, sinif_kodu: str) -> Sinif:
+    """Sınıfı varsa getir, yoksa oluştur ve demo öğrenciler ekle."""
     sinif = db.query(Sinif).filter(Sinif.kod == sinif_kodu).first()
     if sinif:
         return sinif
@@ -135,16 +154,71 @@ def veli_tel_al(ogrenci: Ogrenci) -> str:
 
 
 @app.get("/")
-def idare_canli_takip(request: Request, db: Session = Depends(get_db)):
+def idare_canli_takip(request: Request, db: Session = Depends(get_db), grade: str = None):
     """İdare Canlı Takip Paneli"""
+    if not admin_pin_dogrulandi(request):
+        return RedirectResponse(url="/admin-giris", status_code=302)
+    
     return templates.TemplateResponse(
         request=request,
         name="index.html",
         context={
-            "sinif_durumlari": sinif_durumlari_olustur(db),
+            "sinif_durumlari": sinif_durumlari_olustur(db, grade),
             "bugun": date.today(),
+            "selected_grade": grade,
         },
     )
+
+
+@app.get("/admin-giris")
+def admin_giris(request: Request):
+    """Admin PIN girişi sayfası"""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_giris.html",
+        context={"hata": None},
+    )
+
+
+@app.post("/admin-giris")
+async def admin_giris_post(request: Request):
+    """Admin PIN doğrulama"""
+    form = await request.form()
+    pin = (form.get("pin") or "").strip()
+
+    if not admin_pin_dogrula(pin):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin_giris.html",
+            context={"hata": "Geçersiz PIN. Tekrar deneyin."},
+            status_code=401,
+        )
+
+    request.session["admin_auth"] = True
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/admin-logout")
+def admin_logout(request: Request):
+    """Admin Logout"""
+    request.session.clear()
+    return RedirectResponse(url="/admin-giris", status_code=302)
+
+
+@app.post("/api/tum-yoklamalari-sifirla")
+def tum_yoklamalari_sifirla(request: Request, db: Session = Depends(get_db)):
+    """Tüm yoklama verilerini siler ve baştan başlatır."""
+    if not admin_pin_dogrulandi(request):
+        raise HTTPException(status_code=401, detail="Admin doğrulaması gerekli.")
+    
+    # Tüm yoklamaları sil
+    db.query(Yoklama).delete()
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Tüm yoklamalar sıfırlandı. Tüm sınıflar 'Yoklama Bekleniyor' durumuna döndü."
+    }
 
 
 @app.get("/sinif/{sinif_kodu}")
@@ -192,11 +266,13 @@ async def sinif_pin_giris(request: Request, sinif_kodu: str, db: Session = Depen
 @app.post("/api/yoklama-kaydet")
 def yoklama_kaydet(
     request: Request,
-    sinif_kodu: str,
-    liste: List[YoklamaGuncelle],
+    istek: YoklamaKaydetIstek,
     db: Session = Depends(get_db),
 ):
     """Toplu yoklama kayıt ve SMS simülasyon rotası"""
+    sinif_kodu = istek.sinif_kodu
+    liste = istek.liste
+    
     if not sinif_pin_dogrulandi(request, sinif_kodu):
         raise HTTPException(status_code=401, detail="Öğretmen PIN doğrulaması gerekli.")
 

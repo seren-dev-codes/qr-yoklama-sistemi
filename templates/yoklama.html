@@ -85,6 +85,14 @@
     <h1>{{ sinif_kodu }} Sınıfı Yoklaması</h1>
     <p class="subtitle">Gelmeyen öğrencilerin üzerine tıklayarak "YOK" yapın. Yok olan öğrencilerin velisine SMS gönderilir.</p>
 
+    <!-- Yok Olanlar Widget -->
+    <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 16px; border-radius: 8px; margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <h3 style="margin: 0 0 12px 0; color: #991b1b; font-size: 16px;">🔴 Yok Olanlar (<span id="yokSayisi">0</span>)</h3>
+        <div id="yokOlanlarListesi" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span style="color: #6b7280; font-size: 14px;">Henüz kimse seçilmedi</span>
+        </div>
+    </div>
+
     <div class="grid">
         {% for ogrenci in ogrenciler %}
         <div class="card" data-id="{{ ogrenci.id }}" onclick="durumDegistir(this, '{{ ogrenci.id }}')">
@@ -96,88 +104,185 @@
         {% endfor %}
     </div>
 
-    <button class="btn-kaydet" onclick="yoklamaKaydet()">Yoklamayı Tamamla ve Gönder</button>
+    <button class="btn-kaydet" onclick="onayModaliniAc()">Yoklamayı Tamamla ve Gönder</button>
 
-    <div class="modal-overlay" id="basariModal">
+    <!-- Onay Modal -->
+    <div class="modal-overlay" id="onayModal">
         <div class="modal">
-            <div class="modal-icon">✓</div>
-            <h2>Yoklama Tamamlandı!</h2>
-            <p id="modalMesaj">Yoklama başarıyla kaydedildi.</p>
-            <div class="sms-bilgi" id="modalSms"></div>
-            <button class="modal-btn" onclick="modalKapat()">Tamam</button>
+            <div class="modal-icon">⚠️</div>
+            <h2>Yoklama Onayı</h2>
+            <p id="onayMesaji">Bu değişiklikleri kaydetmek istediğinizden emin misiniz?</p>
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="modal-btn" style="background: #6b7280;" onclick="onayModaliniKapat()">İptal</button>
+                <button class="modal-btn" onclick="yoklamaKaydet()">Evet, Gönder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detay Modal -->
+    <div class="modal-overlay" id="detayModal">
+        <div class="modal">
+            <div class="modal-icon">📋</div>
+            <h2>Yok Olanların Detaylı Listesi</h2>
+            <div id="detayListesi" style="background: #f3f4f6; padding: 12px; border-radius: 8px; max-height: 300px; overflow-y: auto; margin: 16px 0;">
+                <!-- Liste buraya dolacak -->
+            </div>
+            <button class="modal-btn" onclick="detayModalKapat()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- Sonuç Bildirimi Modal -->
+    <div class="modal-overlay" id="sonucModal">
+        <div class="modal">
+            <div class="modal-icon" id="sonucIcon">✅</div>
+            <h2 id="sonucBaslik">İşlem Başarılı</h2>
+            <p id="sonucMesaji"></p>
+            <button class="modal-btn" onclick="anaSayfayaDon()">Tamam</button>
         </div>
     </div>
 
     <script>
-        const ogrenciDurumlari = {};
-        const sinifKodu = "{{ sinif_kodu }}";
-
-        document.querySelectorAll('.card').forEach(card => {
-            const id = card.getAttribute('data-id');
-            ogrenciDurumlari[id] = true;
-        });
-
-        function durumDegistir(card, id) {
-            card.classList.toggle('yok');
-            const statusTag = card.querySelector('.status');
-
-            if (card.classList.contains('yok')) {
-                statusTag.innerText = "YOK";
-                ogrenciDurumlari[id] = false;
+        const seciliOgrenciler = {};
+        const SINIF_KODU = "{{ sinif_kodu }}";
+        
+        // Öğrenci adlarını tutmak için
+        const ogrenciAdlari = {};
+        
+        function durumDegistir(element, ogrenciId) {
+            element.classList.toggle("yok");
+            const statusEl = element.querySelector(".status");
+            const adEl = element.querySelector(".name");
+            const noEl = element.querySelector(".no");
+            const adSoyad = adEl.textContent;
+            
+            if (element.classList.contains("yok")) {
+                statusEl.textContent = "YOK";
+                seciliOgrenciler[ogrenciId] = adSoyad;
+                ogrenciAdlari[ogrenciId] = adSoyad;
             } else {
-                statusTag.innerText = "VAR";
-                ogrenciDurumlari[id] = true;
+                statusEl.textContent = "VAR";
+                delete seciliOgrenciler[ogrenciId];
+                delete ogrenciAdlari[ogrenciId];
+            }
+            
+            // Yok Olanlar listesini güncelle
+            guncelleYokOlanlarListesi();
+        }
+        
+        function guncelleYokOlanlarListesi() {
+            const yokSayisi = Object.keys(seciliOgrenciler).length;
+            document.getElementById("yokSayisi").textContent = yokSayisi;
+            
+            const listesiDiv = document.getElementById("yokOlanlarListesi");
+            
+            if (yokSayisi === 0) {
+                listesiDiv.innerHTML = '<span style="color: #6b7280; font-size: 14px;">Henüz kimse seçilmedi</span>';
+            } else {
+                listesiDiv.innerHTML = Object.entries(seciliOgrenciler)
+                    .map(([id, ad]) => `
+                        <span style="background: #fca5a5; color: #7f1d1d; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">
+                            ${ad} 
+                            <button onclick="ogrenciCikar('${id}')" style="background: none; border: none; color: #7f1d1d; cursor: pointer; margin-left: 6px; font-weight: bold;">✕</button>
+                        </span>
+                    `)
+                    .join("");
             }
         }
-
-        function modalAc(smsSayisi, gelmeyenSayisi) {
-            document.getElementById('modalMesaj').innerText =
-                `${sinifKodu} sınıfı yoklaması başarıyla kaydedildi.`;
-            document.getElementById('modalSms').innerText =
-                `${gelmeyenSayisi} öğrenci yok olarak işaretlendi. ${smsSayisi} veliye SMS gönderildi.`;
-            document.getElementById('basariModal').classList.add('acik');
-        }
-
-        function modalKapat() {
-            document.getElementById('basariModal').classList.remove('acik');
-        }
-
-        async function yoklamaKaydet() {
-            const btn = document.querySelector('.btn-kaydet');
-            btn.disabled = true;
-            btn.innerText = "Gönderiliyor ve SMS Gönderiliyor...";
-
-            const veri = Object.keys(ogrenciDurumlari).map(id => ({
-                ogrenci_id: parseInt(id),
-                durum: ogrenciDurumlari[id]
-            }));
-
-            try {
-                const response = await fetch(`/api/yoklama-kaydet?sinif_kodu=${encodeURIComponent(sinifKodu)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(veri),
-                    credentials: 'same-origin'
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    modalAc(result.sms_sayisi ?? 0, result.gelmeyen_sayisi ?? 0);
-                } else if (response.status === 401) {
-                    alert("🔒 Oturum süresi doldu. Lütfen sayfayı yenileyip PIN ile tekrar giriş yapın.");
-                    window.location.href = `/sinif/${sinifKodu}`;
-                } else {
-                    const hata = typeof result.detail === "string" ? result.detail : "Yoklama kaydedilemedi.";
-                    alert("❌ Hata: " + hata);
+        
+        function ogrenciCikar(ogrenciId) {
+            const card = document.querySelector(`[data-id="${ogrenciId}"]`);
+            if (card) {
+                card.classList.remove("yok");
+                card.querySelector(".status").textContent = "VAR";
+                delete seciliOgrenciler[ogrenciId];
+                delete ogrenciAdlari[ogrenciId];
+                guncelleYokOlanlarListesi();
+                
+                // Detay modal açıksa, orada da listeyi güncelle
+                const detayModal = document.getElementById("detayModal");
+                if (detayModal.classList.contains("acik")) {
+                    detayListesiGoster();
                 }
-            } catch (error) {
-                console.error("İstek hatası:", error);
-                alert("⚠️ Sunucuya bağlanırken bir hata oluştu!");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Yoklamayı Tamamla ve Gönder";
             }
+        }
+        
+        function onayModaliniAc() {
+            const yokOgrenciSayisi = Object.keys(seciliOgrenciler).length;
+            
+            if (yokOgrenciSayisi === 0) {
+                alert("Lütfen gelmeyen öğrencileri işaretleyin.");
+                return;
+            }
+            
+            // Tıklanabilir sayı oluştur
+            const mesaj = `<span style="cursor: pointer; text-decoration: underline; color: #0369a1;" onclick="detayListesiGoster()"><b>${yokOgrenciSayisi} öğrenci</b></span> gelmeyen olarak işaretlendi. Velilerine SMS gönderilecek. Devam etmek istediğinizden emin misiniz?`;
+            document.getElementById("onayMesaji").innerHTML = mesaj;
+            document.getElementById("onayModal").classList.add("acik");
+        }
+        
+        function onayModaliniKapat() {
+            document.getElementById("onayModal").classList.remove("acik");
+        }
+        
+        function detayListesiGoster() {
+            const detayDiv = document.getElementById("detayListesi");
+            
+            if (Object.keys(seciliOgrenciler).length === 0) {
+                detayDiv.innerHTML = '<p style="color: #6b7280; text-align: center;">Kimse seçilmedi</p>';
+            } else {
+                detayDiv.innerHTML = Object.entries(seciliOgrenciler)
+                    .map(([id, ad], idx) => `
+                        <div style="padding: 10px; background: white; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 500; color: #1f2937;">${idx + 1}. ${ad}</span>
+                            <button onclick="ogrenciCikar('${id}')" style="background: #fee2e2; color: #dc2626; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">✕ Çıkar</button>
+                        </div>
+                    `)
+                    .join("");
+            }
+            
+            document.getElementById("detayModal").classList.add("acik");
+        }
+        
+        function detayModalKapat() {
+            document.getElementById("detayModal").classList.remove("acik");
+        }
+        
+        async function yoklamaKaydet() {
+            const liste = [];
+            
+            document.querySelectorAll(".card").forEach(card => {
+                const ogrenciId = card.dataset.id;
+                const durum = !card.classList.contains("yok");
+                liste.push({ ogrenci_id: parseInt(ogrenciId), durum: durum });
+            });
+            
+            try {
+                const response = await fetch("/api/yoklama-kaydet", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sinif_kodu: SINIF_KODU,
+                        liste: liste
+                    })
+                });
+                
+                if (!response.ok) throw new Error("API hatası");
+                
+                const data = await response.json();
+                onayModaliniKapat();
+                
+                const mesaj = `<b>Yoklama Tamamlandı!</b><br><br>✅ Gelmeyen öğrenci: <b>${data.gelmeyen_sayisi}</b><br>📱 Veli bildirimi gönderilen: <b>${data.sms_sayisi}</b><br><br><i>${data.message}</i>`;
+                document.getElementById("sonucMesaji").innerHTML = mesaj;
+                document.getElementById("sonucIcon").textContent = "✅";
+                document.getElementById("sonucBaslik").textContent = "Başarılı!";
+                document.getElementById("sonucModal").classList.add("acik");
+            } catch (error) {
+                alert("Hata: " + error.message);
+            }
+        }
+        
+        function anaSayfayaDon() {
+            window.location.href = "/";
         }
     </script>
 </body>
