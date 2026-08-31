@@ -1,68 +1,15 @@
-# 📱 QR Code Based School Attendance System
-
-A fast and secure attendance management system built with FastAPI, SQLite, and modern web technologies designed to digitize classroom attendance.
-
----
-
-## 📌 About The Project
-
-This project is a **FastAPI-powered web application** designed to digitize and streamline the attendance recording process in schools and educational institutions, minimizing human error and securely managing attendance data.
-
-The system offers modern features such as QR code generation/validation, secure teacher authentication via PIN code, real-time UI filtering for absent students, and detailed admin reporting dashboards.
-
----
-
-## 🚀 Key Features
-
-- **🔍 Dynamic & Interactive UI:** Students marked as absent are instantly filtered and moved to a top section ("Absentees") for clear visibility.
-- **📊 Interactive Confirmation Modal:** Clicking on the absent count opens a quick scrollable modal displaying the list of selected absent students.
-- **🔐 Security & Authentication:** PIN verification system and authorized login modules to prevent unauthorized attendance submissions.
-- **📲 QR Code Integration:** Automatic QR code generation for classrooms and sessions, allowing teachers to initiate attendance tracking in seconds.
-- **📁 Detailed Reporting Dashboard:** Admin panel to review historical attendance records, track participation metrics, and manage the database.
-
----
-
-## 🛠️ Tech Stack
-
-- **Backend:** Python 3.10+, FastAPI, Uvicorn
-- **Database:** SQLite, SQLAlchemy (ORM)
-- **Frontend:** HTML5, CSS3, JavaScript (Vanilla JS / DOM Manipulation)
-- **Template Engine:** Jinja2
-- **Libraries & Tools:** `qrcode`, `pydantic`, `git`
-
----
-
-## 📂 Project Directory Structure
-
-```text
-qr-yoklama-sistemi/
-├── app/
-│   ├── __init__.py
-│   ├── database.py       # Database connections and session management
-│   ├── main.py           # FastAPI application entry point and routes
-│   ├── models.py         # SQLAlchemy database models
-│   ├── schemas.py        # Pydantic validation schemas
-│   └── utils.py          # Utility helper functions (QR generator, etc.)
-├── templates/
-│   ├── admin_giris.html  # Admin login portal
-│   ├── index.html        # Main dashboard and navigation landing page
-│   ├── pin_giris.html    # Teacher PIN verification screen
-│   └── yoklama.html      # Dynamic attendance management UI
-├── generate_qr.py        # Bulk QR code generation script
-├── requirements.txt      # Project dependencies
-├── .gitignore            # Git exclusion rules
-└── README.md             # Project documentation
-
-
-
-
 # 📱 QR Kod Tabanlı Okul Yoklama Sistemi
 
 FastAPI, SQLite ve modern web teknolojileri kullanılarak geliştirilmiş; okullarda ve eğitim kurumlarında yoklama alma süreçlerini dijitalleştiren, hızlı ve güvenli bir yoklama yönetim sistemidir.
 
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+
 ---
 
-## 📌 Proje Hakkında
+##  Proje Hakkında
 
 Bu proje, geleneksel kağıt tabanlı yoklama süreçlerinin yarattığı zaman kaybını ve karmaşayı ortadan kaldırmak amacıyla tasarlanmıştır. 
 
@@ -70,13 +17,13 @@ Sistem; QR kod doğrulama, PIN kodu ile öğretmen girişi, yoklamada olmayan ö
 
 ---
 
-## 🚀 Öne Çıkan Özellikler
+##  Öne Çıkan Özellikler
 
-- **🔍 Dinamik ve Etkileşimli Yoklama Ekranı:** Sınıf listesinde bir öğrenci "Yok" olarak işaretlendiği anda en üstteki **"Yok Olanlar"** alanına otomatik olarak taşınır.
+- ** Dinamik ve Etkileşimli Yoklama Ekranı:** Sınıf listesinde bir öğrenci "Yok" olarak işaretlendiği anda en üstteki **"Yok Olanlar"** alanına otomatik olarak taşınır.
 - **📊 Etkileşimli Onay Penceresi (Modal):** Onay ekranındaki seçili öğrenci sayısına tıklandığında, yok yazılan öğrencilerin isim listesi hızlıca görüntülenebilir.
-- **🔐 Güvenlik & PIN Doğrulama:** Yetkisiz erişimleri engellemek için PIN kodu ve yetkili giriş mekanizması.
-- **📲 QR Kod Entegrasyonu:** Sınıf/ders bazlı QR kod tarama desteği ile saniyeler içinde yoklama başlatma.
-- **📁 Detaylı Raporlama Paneli:** Yönetici paneli üzerinden geçmiş yoklama kayıtlarını ve katılım istatistiklerini inceleme.
+- ** Güvenlik & PIN Doğrulama:** Yetkisiz erişimleri engellemek için PIN kodu ve yetkili giriş mekanizması.
+- ** QR Kod Entegrasyonu:** Sınıf/ders bazlı QR kod tarama desteği ile saniyeler içinde yoklama başlatma.
+- ** Detaylı Raporlama Paneli:** Yönetici paneli üzerinden geçmiş yoklama kayıtlarını ve katılım istatistiklerini inceleme.
 
 ---
 
@@ -90,9 +37,31 @@ Sistem; QR kod doğrulama, PIN kodu ile öğretmen girişi, yoklamada olmayan ö
 
 ---
 
-## 📂 Proje Yapısı
+git clone [https://github.com/seren-dev-codes/qr-yoklama-sistemi.git](https://github.com/seren-dev-codes/qr-yoklama-sistemi.git)
+cd qr-yoklama-sistemi
 
-```text
+## 💻 Kurulum ve Çalıştırma
+
+Projeyi kendi bilgisayarınızda çalıştırmak için terminalinizde sırasıyla aşağıdaki komutları çalıştırın:
+
+```bash
+# 1. Depoyu klonlayın ve klasöre girin
+git clone [https://github.com/seren-dev-codes/qr-yoklama-sistemi.git](https://github.com/seren-dev-codes/qr-yoklama-sistemi.git)
+cd qr-yoklama-sistemi
+
+# 2. Sanal ortamı oluşturun ve aktif edin (Windows)
+python -m venv venv
+venv\Scripts\activate
+
+# (macOS/Linux kullanıyorsanız 2. adım yerine bunu çalıştırın:)
+# python3 -m venv venv && source venv/bin/activate
+
+# 3. Gerekli kütüphaneleri yükleyin
+pip install -r requirements.txt
+
+# 4. Sunucuyu başlatın
+uvicorn app.main:app --reload
+
 qr-yoklama-sistemi/
 ├── app/
 │   ├── __init__.py
